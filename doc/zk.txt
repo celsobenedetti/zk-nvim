@@ -7,7 +7,8 @@ CONTENTS                                                             *zk-content
     1.1. Requirements............................................|zk-requirements|
     1.2. Installation............................................|zk-installation|
     1.3. Setup..........................................................|zk-setup|
-        1.3.1. Notebook Directory Discovery......|zk-notebook_directory_discovery|
+        1.3.1. Picker Options............................|zk-picker_configuration|
+        1.3.2. Notebook Directory Discovery......|zk-notebook_directory_discovery|
     1.4. Getting Started......................................|zk-getting_started|
     1.5. Built-in Commands..................................|zk-built-in_commands|
     1.6. Custom Commands......................................|zk-custom_commands|
@@ -28,8 +29,8 @@ Neovim extension for the `zk` (https://github.com/zk-org/zk) plain text note-tak
 --------------------------------------------------------------------------------
 REQUIREMENTS                                                     *zk-requirements*
 
-*   Neovim >= 0.6.0
-*   `zk` >= 0.9.0
+*   Neovim >= 0.10.0
+*   `zk` >= 0.14.1
 
 --------------------------------------------------------------------------------
 INSTALLATION                                                     *zk-installation*
@@ -44,7 +45,7 @@ Via vim-plug (https://github.com/junegunn/vim-plug)
     Plug "zk-org/zk-nvim"
 <
 
-To get the best experience, it's recommended to also install either Telescope (https://github.com/nvim-telescope/telescope.nvim) or fzf (https://github.com/junegunn/fzf).
+To get the best experience, it's recommended to also install either Telescope (https://github.com/nvim-telescope/telescope.nvim), fzf (https://github.com/junegunn/fzf), mini.pick (https://github.com/echasnovski/mini.nvim/blob/main/readmes/mini-pick.md), or snacks.picker (https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 
 --------------------------------------------------------------------------------
 SETUP                                                                   *zk-setup*
@@ -58,8 +59,9 @@ SETUP                                                                   *zk-setu
 The default configuration
 >
     require("zk").setup({
-      -- can be "telescope", "fzf", "fzf_lua" or "select" (`vim.ui.select`)
-      -- it's recommended to use "telescope", "fzf" or "fzf_lua"
+      -- Can be "telescope", "fzf", "fzf_lua", "minipick", "snacks_picker", 
+      -- or select" (`vim.ui.select`). It's recommended to use "telescope", 
+      -- "fzf", "fzf_lua", "minipick", or "snacks_picker".
       picker = "select",
       lsp = {
         -- `config` is passed to `vim.lsp.start_client(config)`
@@ -80,6 +82,28 @@ The default configuration
 
 Note that the `setup` function will not add any key mappings for you.
 If you want to add key mappings, see the example mappings (#example-mappings).
+
+PICKER OPTIONS                                     *zk-picker_options*
+
+You can define default configurations for the pickers opened by `zk-nvim`, allowing you to apply a specific theme or layout to `zk-nvim`. This works for all supported pickers, but you'll need to refer to the relevant configuration options for each picker.
+
+Example configuration:
+>
+  require("zk").setup({
+      picker_options = {
+          telescope = require("telescope.themes").get_ivy(),
+
+          -- or if you use snacks picker
+
+          snacks_picker = {
+              layout = {
+                  preset = "ivy",
+              }
+          },
+      },
+      ...
+  })
+<
 
 NOTEBOOK DIRECTORY DISCOVERY                     *zk-notebook_directory_discovery*
 
@@ -108,25 +132,25 @@ BUILT-IN COMMANDS                                           *zk-built-in_command
 >
     " Indexes the notebook
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zkindex
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zkindex
     :ZkIndex [{options}]
 <
 >
     " Creates and edits a new note
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
     :ZkNew [{options}]
 <
 >
     " Creates a new note and uses the last visual selection as the title while replacing the selection with a link to the new note
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
     :'<,'>ZkNewFromTitleSelection [{options}]
 <
 >
     " Creates a new note and uses the last visual selection as the content while replacing the selection with a link to the new note
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
     :'<,'>ZkNewFromContentSelection [{options}]
 <
 >
@@ -138,36 +162,40 @@ BUILT-IN COMMANDS                                           *zk-built-in_command
 >
     " Opens a notes picker
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     :ZkNotes [{options}]
 <
+    " Opens a notes picker for active buffers (showing notebook files only).
+    " params
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
+    :ZkBuffers [{options}]
 >
     " Opens a notes picker for the backlinks of the current buffer
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     :ZkBacklinks [{options}]
 <
 >
     " Opens a notes picker for the outbound links of the current buffer
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     :ZkLinks [{options}]
 <
 >
     " Opens a notes picker, filters for notes that match the text in the last visual selection
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     :'<,'>ZkMatch [{options}]
 <
 >
     " Opens a notes picker, filters for notes with the selected tags
     " params
-    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zktaglist
+    "   (optional) additional options, see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zktaglist
     :ZkTags [{options}]
 <
 
 The `options` parameter can be any valid Lua expression that evaluates to a table.
-For a list of available options, refer to the `zk` docs (https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#custom-commands).
+For a list of available options, refer to the `zk` docs (https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#custom-commands).
 In addition, `options.notebook_path` can be used to explicitly specify a notebook by providing a path to any file or directory within the notebook; see Notebook Directory Discovery (#notebook-directory-discovery).
 
 Examples:
@@ -251,14 +279,14 @@ It's mainly used for the implementation of built-in and custom commands.
     ---Creates and edits a new note
     --
     ---@param options? table additional options
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
     require("zk").new(options)
 <
 >
     ---Indexes the notebook
     --
     ---@param options? table additional options
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zkindex
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zkindex
     require("zk").index(options)
 <
 >
@@ -267,7 +295,7 @@ It's mainly used for the implementation of built-in and custom commands.
     ---@param options? table additional options
     ---@param picker_options? table options for the picker
     ---@param cb function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     ---@see zk.ui.pick_notes
     require("zk").pick_notes(options, picker_options, cb)
 <
@@ -277,7 +305,7 @@ It's mainly used for the implementation of built-in and custom commands.
     ---@param options? table additional options
     ---@param picker_options? table options for the picker
     ---@param cb function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zktaglist
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zktaglist
     ---@see zk.ui.pick_tags
     require("zk").pick_tags(options, picker_options, cb)
 <
@@ -286,7 +314,7 @@ It's mainly used for the implementation of built-in and custom commands.
     --
     ---@param options? table additional options
     ---@param picker_options? table options for the picker
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     ---@see zk.ui.pick_notes
     require("zk").edit(options, picker_options)
 <
@@ -300,7 +328,7 @@ You can use it to write your own specialized functions for interacting with `zk`
     ---@param path? string path to explicitly specify the notebook
     ---@param options? table additional options
     ---@param cb function callback function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zkindex
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zkindex
     require("zk.api").index(path, options, function(err, stats)
       -- do something with the stats
     end)
@@ -309,7 +337,7 @@ You can use it to write your own specialized functions for interacting with `zk`
     ---@param path? string path to explicitly specify the notebook
     ---@param options? table additional options
     ---@param cb function callback function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
     require("zk.api").new(path, options, function(err, res)
       file_path = res.path
       -- do something with the new file path
@@ -319,7 +347,7 @@ You can use it to write your own specialized functions for interacting with `zk`
     ---@param path? string path to explicitly specify the notebook
     ---@param options table additional options
     ---@param cb function callback function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
     require("zk.api").list(path, options, function(err, notes)
       -- do something with the notes
     end)
@@ -328,7 +356,7 @@ You can use it to write your own specialized functions for interacting with `zk`
     ---@param path? string path to explicitly specify the notebook
     ---@param options? table additional options
     ---@param cb function callback function
-    ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zktaglist
+    ---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zktaglist
     require("zk.api").tag.list(path, options, function(err, tags)
       -- do something with the tags
     end)
@@ -490,3 +518,5 @@ It's possible (but unnecessary) to also load the notes and tags pickers as a tel
     :Telescope zk tags created=today
 <
 
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:fdm=marker:cole=2:

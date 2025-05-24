@@ -6,33 +6,6 @@ local util = require("zk.util")
 
 local M = {}
 
-local function setup_lsp_auto_attach()
-  --- NOTE: modified version of code in nvim-lspconfig
-  local trigger
-  local filetypes = config.options.lsp.auto_attach.filetypes
-  if filetypes then
-    trigger = "FileType " .. table.concat(filetypes, ",")
-  else
-    trigger = "BufReadPost *"
-  end
-  M._lsp_buf_auto_add(0)
-  vim.api.nvim_command(string.format("autocmd %s lua require'zk'._lsp_buf_auto_add(0)", trigger))
-end
-
----Automatically called via an |autocmd| if lsp.auto_attach is enabled.
---
----@param bufnr number
-function M._lsp_buf_auto_add(bufnr)
-  if vim.api.nvim_buf_get_option(bufnr, "buftype") == "nofile" then
-    return
-  end
-
-  if not util.notebook_root(vim.api.nvim_buf_get_name(bufnr)) then
-    return
-  end
-
-  lsp.buf_add(bufnr)
-end
 
 ---The entry point of the plugin
 --
@@ -40,8 +13,9 @@ end
 function M.setup(options)
   config.options = vim.tbl_deep_extend("force", config.defaults, options or {})
 
+  vim.lsp.config(config.options.lsp.config.name, config.options.lsp.config)
   if config.options.lsp.auto_attach.enabled then
-    setup_lsp_auto_attach()
+    vim.lsp.enable(config.options.lsp.config.name)
   end
 
   require("zk.commands.builtin")
@@ -62,7 +36,7 @@ end
 ---Creates and edits a new note
 --
 ---@param options? table additional options
----@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zknew
+---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zknew
 function M.new(options)
   options = options or {}
   api.new(options.notebook_path, options, function(err, res)
@@ -78,7 +52,7 @@ end
 --
 ---@param options? table additional options
 ---@param cb? function for processing stats
----@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zkindex
+---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zkindex
 function M.index(options, cb)
   options = options or {}
   cb = cb or function(stats)
@@ -95,10 +69,11 @@ end
 ---@param options? table additional options
 ---@param picker_options? table options for the picker
 ---@param cb function
----@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
 ---@see zk.ui.pick_notes
 function M.pick_notes(options, picker_options, cb)
-  options = vim.tbl_extend("force", { select = ui.get_pick_notes_list_api_selection(picker_options) }, options or {})
+  options =
+    vim.tbl_extend("force", { select = ui.get_pick_notes_list_api_selection(picker_options) }, options or {})
   api.list(options.notebook_path, options, function(err, notes)
     assert(not err, tostring(err))
     ui.pick_notes(notes, picker_options, cb)
@@ -110,7 +85,7 @@ end
 ---@param options? table additional options
 ---@param picker_options? table options for the picker
 ---@param cb function
----@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zktaglist
+---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zktaglist
 ---@see zk.ui.pick_tags
 function M.pick_tags(options, picker_options, cb)
   options = options or {}
@@ -124,7 +99,7 @@ end
 --
 ---@param options? table additional options
 ---@param picker_options? table options for the picker
----@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
+---@see https://github.com/zk-org/zk/blob/main/docs/tips/editors-integration.md#zklist
 ---@see zk.ui.pick_notes
 function M.edit(options, picker_options)
   M.pick_notes(options, picker_options, function(notes)

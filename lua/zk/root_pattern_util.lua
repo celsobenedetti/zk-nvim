@@ -2,12 +2,16 @@
 -- NOTE: we need this util until the code from lspconfig is merged into core
 
 local vim = vim
-local validate = vim.validate
 local uv = vim.loop
 
 local M = {}
 
 -- Some path utilities
+
+local function tbl_flatten(t)
+  return vim.iter(t):flatten():totable()
+end
+
 M.path = (function()
   local is_windows = uv.os_uname().version:match("Windows")
 
@@ -46,7 +50,7 @@ M.path = (function()
   end
 
   local function path_join(...)
-    return table.concat(vim.tbl_flatten({ ... }), "/")
+    return table.concat(tbl_flatten({ ... }), "/")
   end
 
   -- Iterate the path until we find the rootdir.
@@ -75,13 +79,15 @@ M.path = (function()
 end)()
 
 function M.search_ancestors(startpath, func)
-  validate({ func = { func, "f" } })
+  vim.validate("func", func, "function")
+
   if func(startpath) then
     return startpath
   end
+
   local guard = 100
   for path in M.path.iterate_parents(startpath) do
-    -- Prevent infinite recursion if our algorithm breaks
+    -- prevent infinite recursion
     guard = guard - 1
     if guard == 0 then
       return
@@ -94,7 +100,7 @@ function M.search_ancestors(startpath, func)
 end
 
 function M.root_pattern(...)
-  local patterns = vim.tbl_flatten({ ... })
+  local patterns = tbl_flatten({ ... })
   local function matcher(path)
     for _, pattern in ipairs(patterns) do
       for _, p in ipairs(vim.fn.glob(M.path.join(M.path.escape_wildcards(path), pattern), true, true)) do

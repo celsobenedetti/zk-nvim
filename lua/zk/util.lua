@@ -5,7 +5,9 @@ local M = {}
 ---@param notebook_path string
 ---@return string? root
 function M.notebook_root(notebook_path)
-  return require("zk.root_pattern_util").root_pattern(".zk")(notebook_path)
+  local root_pattern = require("zk.root_pattern_util").root_pattern(".zk")
+  local rp = root_pattern(notebook_path)
+  return rp
 end
 
 ---Try to resolve a notebook path by checking the following locations in that order
@@ -39,15 +41,42 @@ function M.resolve_notebook_path(bufnr)
   return path
 end
 
+local function get_offset_encoding(bufnr)
+  -- Modified from nvim's vim.lsp.util._get_offset_encoding()
+  vim.validate("bufnr", bufnr, "number", true)
+  local zk_client = vim.lsp.get_clients({ bufnr = bufnr, name = "zk" })[1]
+  local error_level = vim.log.levels.ERROR
+  local offset_encoding --- @type 'utf-8'|'utf-16'|'utf-32'
+  if zk_client == nil then
+    vim.notify_once("No zk client found for this buffer. Using default encoding of utf-16", error_level)
+    offset_encoding = "utf-16"
+  elseif zk_client.offset_encoding == nil then
+    vim.notify_once(
+      string.format("ZK Client (id: %s) offset_encoding is nil. Do not unset offset_encoding.", zk_client.id),
+      error_level
+    )
+  else
+    offset_encoding = zk_client.offset_encoding
+  end
+  return offset_encoding
+end
+
+local function make_range_zk()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local offset_encoding = get_offset_encoding(bufnr)
+  -- This function has a warning if encoding is not passed
+  return vim.lsp.util.make_given_range_params(nil, nil, bufnr, offset_encoding)
+end
+
 ---Makes an LSP location object from the last selection in the current buffer.
 --
 ---@return table LSP location object
 ---@see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#location
 function M.get_lsp_location_from_selection()
-  local params = vim.lsp.util.make_given_range_params()
+  local params = make_range_zk()
   return {
     uri = params.textDocument.uri,
-    range = M.get_selected_range(), -- workaround for neovim 0.6.1 bug (https://github.com/zk-org/zk-nvim/issues/19)
+    range = params.range,
   }
 end
 
@@ -78,7 +107,7 @@ end
 ---@return table LSP location object
 ---@see https://microsoft.github.io/language-server-protocol/specifications/specification-current/#location
 function M.get_lsp_location_from_caret()
-  local params = vim.lsp.util.make_given_range_params()
+  local params = make_range_zk()
 
   local row, col = unpack(vim.api.nvim_win_get_cursor(0))
   local position = { line = row, character = col }
@@ -91,47 +120,38 @@ function M.get_lsp_location_from_caret()
   })
 end
 
----Gets the text in the given range of the current buffer.
----Needed until https://github.com/neovim/neovim/pull/13896 is merged.
+---Gets the text in the last visual selection.
 --
----@param range table contains {start} and {end} tables with {line} (0-indexed, end inclusive) and {character} (0-indexed, end exclusive) values
----@return string? text in range
-function M.get_text_in_range(range)
-  local A = range["start"]
-  local B = range["end"]
+---@return string text in range
+function M.get_selected_text()
+  local region = vim.region(0, "'<", "'>", vim.fn.visualmode(), true)
 
-  local lines = vim.api.nvim_buf_get_lines(0, A.line, B.line + 1, true)
-  if vim.tbl_isempty(lines) then
-    return nil
+  local chunks = {}
+  local maxcol = vim.v.maxcol
+  for line, cols in vim.spairs(region) do
+    local endcol = cols[2] == maxcol and -1 or cols[2]
+    local chunk = vim.api.nvim_buf_get_text(0, line, cols[1], line, endcol, {})[1]
+    table.insert(chunks, chunk)
   end
-  local MAX_STRING_SUB_INDEX = 2 ^ 31 - 1 -- LuaJIT only supports 32bit integers for `string.sub` (in block selection B.character is 2^31)
-  lines[#lines] = string.sub(lines[#lines], 1, math.min(B.character, MAX_STRING_SUB_INDEX))
-  lines[1] = string.sub(lines[1], math.min(A.character + 1, MAX_STRING_SUB_INDEX))
-  return table.concat(lines, "\n")
+  return table.concat(chunks, "\n")
 end
 
----Gets the most recently selected range of the current buffer.
----That is the text between the '<,'> marks.
----Note that these marks are only updated *after* leaving the visual mode.
+---Gets the file paths of active buffers.
 --
----@return table selected range, contains {start} and {end} tables with {line} (0-indexed, end inclusive) and {character} (0-indexed, end exclusive) values
-function M.get_selected_range()
-  -- code adjusted from `vim.lsp.util.make_given_range_params`
-  -- we don't want to use character encoding offsets here
+---@return table Paths of currently active buffers.
+function M.get_buffer_paths()
+  local buffers = vim.api.nvim_list_bufs()
+  local paths = {}
 
-  local A = vim.api.nvim_buf_get_mark(0, "<")
-  local B = vim.api.nvim_buf_get_mark(0, ">")
+  for _, buf in ipairs(buffers) do
+    local path = vim.api.nvim_buf_get_name(buf)
 
-  -- convert to 0-index
-  A[1] = A[1] - 1
-  B[1] = B[1] - 1
-  if vim.o.selection ~= "exclusive" then
-    B[2] = B[2] + 1
+    if path ~= "" then
+      table.insert(paths, path)
+    end
   end
-  return {
-    start = { line = A[1], character = A[2] },
-    ["end"] = { line = B[1], character = B[2] },
-  }
+
+  return paths
 end
 
 return M

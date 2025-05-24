@@ -19,7 +19,7 @@ end)
 
 commands.add("ZkNewFromTitleSelection", function(options)
   local location = util.get_lsp_location_from_selection()
-  local selected_text = util.get_text_in_range(location.range)
+  local selected_text = util.get_selected_text()
   assert(selected_text ~= nil, "No selected text")
 
   options = options or {}
@@ -38,7 +38,7 @@ end, { needs_selection = true })
 
 commands.add("ZkNewFromContentSelection", function(options)
   local location = util.get_lsp_location_from_selection()
-  local selected_text = util.get_text_in_range(location.range)
+  local selected_text = util.get_selected_text()
   assert(selected_text ~= nil, "No selected text")
 
   options = options or {}
@@ -61,6 +61,12 @@ commands.add("ZkNotes", function(options)
   zk.edit(options, { title = "Zk Notes" })
 end)
 
+commands.add("ZkBuffers", function(options)
+  local hrefs = util.get_buffer_paths()
+  options = vim.tbl_extend("force", { hrefs = hrefs }, options or {})
+  zk.edit(options, { title = "Zk Buffers" })
+end)
+
 commands.add("ZkBacklinks", function(options)
   options = vim.tbl_extend("force", { linkTo = { vim.api.nvim_buf_get_name(0) } }, options or {})
   zk.edit(options, { title = "Zk Backlinks" })
@@ -75,7 +81,7 @@ local function insert_link(selected, opts)
   opts = vim.tbl_extend("force", {}, opts or {})
 
   local location = util.get_lsp_location_from_selection()
-  local selected_text = util.get_text_in_range(util.get_selected_range())
+  local selected_text = util.get_selected_text()
 
   if not selected then
     location = util.get_lsp_location_from_caret()
@@ -110,7 +116,7 @@ commands.add("ZkInsertLinkAtSelection", function(opts)
 end, { title = "Insert Zk link", needs_selection = true })
 
 commands.add("ZkMatch", function(options)
-  local selected_text = util.get_text_in_range(util.get_selected_range())
+  local selected_text = util.get_selected_text()
   assert(selected_text ~= nil, "No selected text")
   options = vim.tbl_extend("force", { match = { selected_text } }, options or {})
   zk.edit(options, { title = "Zk Notes matching " .. vim.inspect(selected_text) })
